@@ -1,48 +1,41 @@
 const axios = require('axios');
 
-// Your configuration
+// ========== YAHAN PE APNI SAHI INFORMATION DAALO ==========
 const MAIN_APP_URL = 'https://live-whats-chatting-production.up.railway.app';
 const ADMIN_API_KEY = 'hjchat-admin-secret-key-2024';
+// ==========================================================
 
 module.exports = async (req, res) => {
-    // Enable CORS
+    // CORS headers set karo
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-    // Handle preflight
     if (req.method === 'OPTIONS') {
         res.status(200).end();
         return;
     }
 
-    // Handle login (no API key needed)
+    // Admin login handle karo
     if (req.url === '/login' && req.method === 'POST') {
         const { username, password } = req.body;
-        
-        // Admin credentials (change these!)
         if (username === 'admin' && password === 'admin123') {
-            res.json({ 
-                success: true, 
-                token: 'admin-token-' + Date.now() 
-            });
+            return res.json({ success: true, token: 'admin-token-' + Date.now() });
         } else {
-            res.status(401).json({ success: false, error: 'Invalid credentials' });
+            return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
-        return;
     }
 
-    // Check authentication for other requests
+    // API key check karo
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        res.status(401).json({ error: 'Unauthorized - Please login' });
-        return;
+        return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Forward request to main app
     try {
-        console.log(`Forwarding ${req.method} request to: ${MAIN_APP_URL}/api/admin${req.url}`);
-        
+        console.log(`🔄 Forwarding: ${req.method} ${req.url}`);
+        console.log(`📡 To: ${MAIN_APP_URL}/api/admin${req.url}`);
+
         const response = await axios({
             method: req.method,
             url: `${MAIN_APP_URL}/api/admin${req.url}`,
@@ -51,19 +44,32 @@ module.exports = async (req, res) => {
                 'x-api-key': ADMIN_API_KEY,
                 'Content-Type': 'application/json'
             },
-            timeout: 10000 // 10 second timeout
+            timeout: 10000
         });
 
-        res.status(response.status).json(response.data);
+        console.log(`✅ Success from main app`);
+        return res.status(response.status).json(response.data);
+
     } catch (error) {
-        console.error('Proxy error:', error.message);
+        console.error('❌ Proxy Error:', error.message);
         
-        if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-            res.status(503).json({ error: 'Main app is offline' });
+        // Detailed error response
+        if (error.code === 'ECONNREFUSED') {
+            return res.status(503).json({ error: 'Main app is offline (connection refused)' });
+        } else if (error.code === 'ENOTFOUND') {
+            return res.status(503).json({ error: 'Main app URL not found' });
         } else if (error.response) {
-            res.status(error.response.status).json(error.response.data);
+            // The request was made and the server responded with a status code
+            return res.status(error.response.status).json({
+                error: `Main app error: ${error.response.status}`,
+                details: error.response.data
+            });
+        } else if (error.request) {
+            // The request was made but no response was received
+            return res.status(504).json({ error: 'Main app not responding (timeout)' });
         } else {
-            res.status(500).json({ error: 'Internal server error' });
+            // Something happened in setting up the request
+            return res.status(500).json({ error: 'Proxy error: ' + error.message });
         }
     }
 };
