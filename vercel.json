@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "api/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/proxy.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/index.html"
+    }
+  ],
+  "env": {
+    "MAIN_APP_URL": "https://whatsapp-chat-private-production-276f.up.railway.app",
+    "ADMIN_API_KEY": "hjchat-admin-secret-key-2024"
+  }
+}
