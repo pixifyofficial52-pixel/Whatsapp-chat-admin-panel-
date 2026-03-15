@@ -1,0 +1,15 @@
+{
+  "name": "hjchat-admin-panel",
+  "version": "1.0.0",
+  "description": "Admin Panel for HJH Chat",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "vercel": "^32.0.0"
+  }
+}
