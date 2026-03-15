@@ -3,8 +3,10 @@ const axios = require('axios');
 // ========== CONFIGURATION ==========
 const MAIN_APP_URL = 'https://live-whats-chatting-production.up.railway.app';
 const ADMIN_API_KEY = 'hjchat-admin-secret-key-2024';
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'admin123';
+
+// Simple hardcoded credentials
+const VALID_USERNAME = 'admin';
+const VALID_PASSWORD = 'admin123';
 
 module.exports = async (req, res) => {
     // CORS headers
@@ -17,103 +19,87 @@ module.exports = async (req, res) => {
         return res.status(200).end();
     }
 
-    // ========== LOGIN ENDPOINT ==========
-    if (req.url === '/login' && req.method === 'POST') {
-        const { username, password } = req.body || {};
+    // ========== LOGIN ENDPOINT - SIMPLIFIED ==========
+    if (req.url === '/login') {
+        console.log('🔐 Login attempt received');
         
-        if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-            return res.status(200).json({ 
-                success: true, 
-                token: 'admin-token-' + Date.now() 
-            });
-        } else {
-            return res.status(401).json({ 
+        // Only POST allowed
+        if (req.method !== 'POST') {
+            return res.status(405).json({ 
                 success: false, 
-                error: 'Invalid credentials' 
+                error: 'Method not allowed' 
             });
         }
-    }
 
-    // Check authentication for other endpoints
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        try {
+            const { username, password } = req.body || {};
+            console.log(`Username: ${username}, Password: ${password}`);
+
+            // Direct comparison
+            if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+                console.log('✅ Login successful');
+                return res.status(200).json({
+                    success: true,
+                    token: 'simple-token-123',
+                    message: 'Login successful'
+                });
+            } else {
+                console.log('❌ Login failed');
+                return res.status(401).json({
+                    success: false,
+                    error: 'Invalid credentials'
+                });
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Server error'
+            });
+        }
     }
 
     // ========== USERS ENDPOINT ==========
-    if (req.url === '/users' || req.url.endsWith('/users')) {
-        try {
-            const response = await axios({
-                method: 'GET',
-                url: `${MAIN_APP_URL}/api/admin/users`,
-                headers: { 'x-api-key': ADMIN_API_KEY },
-                timeout: 5000
-            });
-            return res.status(200).json(response.data);
-        } catch (error) {
-            // Return sample data if main app fails
-            return res.status(200).json([
-                {
-                    userId: 'user_001',
-                    name: 'John Doe',
-                    online: true,
-                    deviceId: 'Android',
-                    lastSeen: new Date().toISOString(),
-                    joined: '2024-01-01'
-                },
-                {
-                    userId: 'user_002',
-                    name: 'Jane Smith',
-                    online: false,
-                    deviceId: 'iPhone',
-                    lastSeen: new Date().toISOString(),
-                    joined: '2024-01-15'
-                },
-                {
-                    userId: 'user_003',
-                    name: 'Bob Wilson',
-                    online: true,
-                    deviceId: 'Web',
-                    lastSeen: new Date().toISOString(),
-                    joined: '2024-02-01'
-                }
-            ]);
+    if (req.url === '/users') {
+        // Check token (simplified)
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            return res.status(401).json({ error: 'No token' });
         }
+
+        // Return sample users
+        return res.status(200).json([
+            {
+                userId: 'user_001',
+                name: 'John Doe',
+                online: true,
+                deviceId: 'Android',
+                lastSeen: new Date().toISOString(),
+                joined: '2024-01-01'
+            },
+            {
+                userId: 'user_002',
+                name: 'Jane Smith',
+                online: false,
+                deviceId: 'iPhone',
+                lastSeen: new Date().toISOString(),
+                joined: '2024-01-15'
+            }
+        ]);
     }
 
     // ========== STATS ENDPOINT ==========
-    if (req.url === '/stats' || req.url.endsWith('/stats')) {
-        try {
-            const response = await axios({
-                method: 'GET',
-                url: `${MAIN_APP_URL}/api/admin/stats`,
-                headers: { 'x-api-key': ADMIN_API_KEY },
-                timeout: 5000
-            });
-            return res.status(200).json(response.data);
-        } catch (error) {
-            return res.status(200).json({
-                totalUsers: 3,
-                onlineUsers: 2,
-                totalMessages: 150,
-                callsToday: 5,
-                totalFiles: 12,
-                blockedUsers: 1
-            });
-        }
+    if (req.url === '/stats') {
+        return res.status(200).json({
+            totalUsers: 2,
+            onlineUsers: 1,
+            totalMessages: 50,
+            callsToday: 3,
+            totalFiles: 8,
+            blockedUsers: 0
+        });
     }
 
-    // ========== FORWARD OTHER REQUESTS ==========
-    try {
-        const response = await axios({
-            method: req.method,
-            url: `${MAIN_APP_URL}/api/admin${req.url}`,
-            data: req.method !== 'GET' ? req.body : undefined,
-            headers: { 'x-api-key': ADMIN_API_KEY },
-            timeout: 5000
-        });
-        return res.status(response.status).json(response.data);
-    } catch (error) {
-        return res.status(500).json({ error: 'Main app not responding' });
-    }
+    // ========== DEFAULT RESPONSE ==========
+    return res.status(404).json({ error: 'Endpoint not found' });
 };
