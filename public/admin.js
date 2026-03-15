@@ -1,16 +1,20 @@
-// ========== SIMPLIFIED ADMIN JS ==========
+// ========== SIMPLIFIED LOGIN ==========
 let authToken = null;
 
-// ========== LOGIN FUNCTION ==========
 async function login() {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     
     // Show loading
     const loginBtn = document.querySelector('.login-btn');
+    const originalText = loginBtn.innerHTML;
     loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+    loginBtn.disabled = true;
     
     try {
+        console.log('Attempting login with:', username, password);
+        
+        // Try POST first
         const response = await fetch('/api/login', {
             method: 'POST',
             headers: { 
@@ -34,19 +38,19 @@ async function login() {
             loadDashboard();
         } else {
             alert('❌ Login failed: ' + (data.error || 'Invalid credentials'));
-            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login to Dashboard';
+            loginBtn.innerHTML = originalText;
+            loginBtn.disabled = false;
         }
     } catch (error) {
+        console.error('Login error:', error);
         alert('❌ Connection error: ' + error.message);
-        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login to Dashboard';
+        loginBtn.innerHTML = originalText;
+        loginBtn.disabled = false;
     }
 }
 
 // ========== LOAD DASHBOARD ==========
 async function loadDashboard() {
-    // Show loading
-    document.getElementById('recentUsersBody').innerHTML = '<tr><td colspan="6" class="loading-row">Loading...</td></tr>';
-    
     // Load users
     try {
         const response = await fetch('/api/users', {
@@ -91,7 +95,6 @@ function displayUsers(users) {
     users.forEach(user => {
         const statusClass = user.online ? 'status-online' : 'status-offline';
         const statusText = user.online ? 'Online' : 'Offline';
-        const lastSeen = user.lastSeen ? new Date(user.lastSeen).toLocaleString() : 'Just now';
         
         const row = `
             <tr>
@@ -99,7 +102,7 @@ function displayUsers(users) {
                 <td>${user.name}</td>
                 <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                 <td>${user.deviceId || 'N/A'}</td>
-                <td>${lastSeen}</td>
+                <td>${user.lastSeen ? new Date(user.lastSeen).toLocaleString() : 'Just now'}</td>
                 <td>
                     <button class="action-btn view" onclick="alert('User: ${user.name}')">👁️</button>
                     <button class="action-btn block" onclick="alert('Block ${user.name}')">🚫</button>
@@ -111,8 +114,8 @@ function displayUsers(users) {
         allHtml += row;
     });
     
-    document.getElementById('recentUsersBody').innerHTML = recentHtml;
-    document.getElementById('usersBody').innerHTML = allHtml;
+    document.getElementById('recentUsersBody').innerHTML = recentHtml || '<tr><td colspan="6" class="loading-row">No users</td></tr>';
+    document.getElementById('usersBody').innerHTML = allHtml || '<tr><td colspan="7" class="loading-row">No users</td></tr>';
 }
 
 // ========== LOGOUT ==========
@@ -127,12 +130,17 @@ function showSection(section) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById(`section-${section}`).classList.add('active');
     
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    event.target.closest('.menu-item').classList.add('active');
+    
     if (section === 'dashboard') loadDashboard();
 }
 
-// ========== SEARCH FUNCTIONS ==========
+// ========== SEARCH ==========
 function searchUsers() {}
 function searchAllUsers() {}
-function loadCalls() {}
-function loadFiles() {}
+function loadCalls() { document.getElementById('callsBody').innerHTML = '<tr><td colspan="6" class="loading-row">No calls</td></tr>'; }
+function loadFiles() { document.getElementById('filesBody').innerHTML = '<tr><td colspan="4" class="loading-row">No files</td></tr>'; }
 function saveSettings() { alert('Settings saved'); }
