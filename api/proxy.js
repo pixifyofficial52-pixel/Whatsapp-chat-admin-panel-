@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 // ========== CONFIGURATION ==========
-const MAIN_APP_URL = 'https://live-whats-chatting-production.up.railway.app';
+const MAIN_APP_URL = 'https://live-whats-chatting-production.up.railway.app/';
 const ADMIN_API_KEY = 'hjchat-admin-secret-key-2024';
 
 module.exports = async (req, res) => {
